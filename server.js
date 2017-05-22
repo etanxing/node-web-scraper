@@ -6,38 +6,27 @@ var app     = express();
 
 app.get('/scrape', function(req, res){
   // Let's scrape Anchorman 2
-  url = 'http://www.imdb.com/title/tt1229340/';
+  url = 'http://realtime.adelaidemetro.com.au/SiriWebServiceSAVM/SiriStopMonitoring.svc/json/SM?MonitoringRef=';
 
-  request(url, function(error, response, html){
-    if(!error){
-      var $ = cheerio.load(html);
+  function fetchStop(stopId) {
+    request(url + stopId, function(error, response, body){
+      if(!error){
+        const data = JSON.parse(body).StopMonitoringDelivery[0].MonitoredStopVisit
 
-      var title, release, rating;
-      var json = { title : "", release : "", rating : ""};
-
-      $('.title_wrapper').filter(function(){
-        var data = $(this);
-        title = data.children().first().text().trim();
-        release = data.children().last().children().last().text().trim();
-
-        json.title = title;
-        json.release = release;
-      })
-
-      $('.ratingValue').filter(function(){
-        var data = $(this);
-        rating = data.text().trim();
-
-        json.rating = rating;
-      })
-    }
-
-    fs.writeFile('output.json', JSON.stringify(json, null, 4), function(err){
-      console.log('File successfully written! - Check your project directory for the output.json file');
+        //console.log( data )
+        for ( const { MonitoredVehicleJourney } of data ) {
+          console.log( MonitoredVehicleJourney.LineRef.Value + ' To ' +
+            MonitoredVehicleJourney.DestinationName[0].Value + ' ' +
+            eval('new ' + MonitoredVehicleJourney.MonitoredCall.LatestExpectedArrivalTime.match(/Date\(\S+\)/)[0]))
+        }
+      }
     })
+  }
 
-    res.send('Check your console!')
-  })
+  fetchStop(13649)
+  fetchStop(13294)
+
+  res.send('ok')
 })
 
 app.listen('8081')
